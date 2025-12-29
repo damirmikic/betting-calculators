@@ -489,9 +489,44 @@
                                 <input type="number" id="poissonLambda" placeholder="1.5" step="0.1" class="modern-input w-full p-4 text-lg">
                                 <p class="text-[10px] text-slate-500 mt-2">E.g., Avg goals for a soccer team.</p>
                             </div>
-                            <button onclick="calculatePoissonTable()" class="btn-primary w-full py-3 shadow-glow text-white">Generate Table</button>
+                            <div>
+                                <label class="text-xs text-slate-400 uppercase font-bold mb-2 block">Target Line (Optional)</label>
+                                <input type="number" id="poissonLine" placeholder="e.g. 2.5" step="0.5" class="modern-input w-full p-4 text-lg">
+                                <p class="text-[10px] text-slate-500 mt-2">Calculates specific Over/Under probs.</p>
+                            </div>
+                            <button onclick="calculatePoisson()" class="btn-primary w-full py-3 shadow-glow text-white">Generate</button>
+                        </div>
+                        
+                        <!-- Line Result Area -->
+                        <div id="poissonLineResults" class="hidden mt-6 pt-6 border-t border-white/5 space-y-4 animate-fade-in">
+                            <h4 class="text-sm font-bold text-white flex items-center gap-2"><i class="fa-solid fa-bullseye text-pink-500"></i> Line Analysis</h4>
+                            
+                            <div class="bg-black/20 p-3 rounded-xl border border-white/5 flex justify-between items-center">
+                                <div class="text-xs text-slate-400">Over <span class="poisson-line-display font-bold text-white">-</span></div>
+                                <div class="text-right">
+                                    <div id="pOverPct" class="font-bold text-emerald-400 text-sm">-</div>
+                                    <div id="pOverOdds" class="text-[10px] font-mono text-slate-500">-</div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-black/20 p-3 rounded-xl border border-white/5 flex justify-between items-center">
+                                <div class="text-xs text-slate-400">Under <span class="poisson-line-display font-bold text-white">-</span></div>
+                                <div class="text-right">
+                                    <div id="pUnderPct" class="font-bold text-red-400 text-sm">-</div>
+                                    <div id="pUnderOdds" class="text-[10px] font-mono text-slate-500">-</div>
+                                </div>
+                            </div>
+
+                            <div id="pExactContainer" class="hidden bg-black/20 p-3 rounded-xl border border-white/5 flex justify-between items-center">
+                                <div class="text-xs text-slate-400">Exactly <span class="poisson-line-display font-bold text-white">-</span></div>
+                                <div class="text-right">
+                                    <div id="pExactPct" class="font-bold text-blue-400 text-sm">-</div>
+                                    <div id="pExactOdds" class="text-[10px] font-mono text-slate-500">-</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    
                     <div class="glass-card p-0 md:col-span-2 overflow-hidden">
                         <table class="w-full text-sm text-left text-slate-300">
                             <thead class="text-xs text-slate-400 uppercase bg-black/20">
@@ -701,9 +736,12 @@
             }
         }
 
-        // --- POISSON TABLE CALCULATOR ---
-        function calculatePoissonTable() {
+        // --- POISSON TABLE CALCULATOR (UPDATED) ---
+        function calculatePoisson() {
             const lambda = parseFloat(document.getElementById('poissonLambda').value);
+            const lineInput = document.getElementById('poissonLine').value;
+            const line = lineInput ? parseFloat(lineInput) : null;
+            
             const tbody = document.getElementById('poissonTableBody');
             tbody.innerHTML = "";
             
@@ -713,23 +751,15 @@
             function factorial(n) { if(n<2) return 1; return n * factorial(n-1); }
 
             let cumulative = 0;
+            // TABLE GEN
             for(let k=0; k<15; k++) {
                 const p = poisson(k, lambda);
                 cumulative += p;
-                
-                // Stop if probability is negligible
                 if(p < 0.0001 && cumulative > 0.999) break;
 
                 const percent = (p * 100).toFixed(1) + "%";
                 const odds = p > 0 ? (1/p).toFixed(2) : '-';
                 
-                // Cumulative logic
-                const probUnder = cumulative; 
-                const probOver = 1 - cumulative + p; // Probability of being >= k. Wait, strict over is > k? Usually betting is Over 2.5.
-                // Let's do: "Over k" means > k (e.g. Over 0 means 1,2,3...) = 1 - P(<=k)
-                // "Under k" means < k? No, usually betting lines are integers.
-                // Let's list P(> k) and P(< k). 
-                // Actually, standard table: P(X=k), P(X<=k), P(X>=k)
                 const probLEQ = (cumulative * 100).toFixed(1) + "%"; // <= k
                 const probGEQ = ((1 - cumulative + p) * 100).toFixed(1) + "%"; // >= k
                 
@@ -742,6 +772,52 @@
                     <td class="px-6 py-4 font-mono">${odds}</td>
                 `;
                 tbody.appendChild(tr);
+            }
+
+            // SPECIFIC LINE CALCULATION
+            const resContainer = document.getElementById('poissonLineResults');
+            const exactContainer = document.getElementById('pExactContainer');
+            
+            if (line !== null && !isNaN(line)) {
+                resContainer.classList.remove('hidden');
+                document.querySelectorAll('.poisson-line-display').forEach(el => el.textContent = line);
+
+                let probOver = 0, probUnder = 0, probExact = 0;
+                
+                if (Number.isInteger(line)) {
+                    // Integer Logic (3.0)
+                    probExact = poisson(line, lambda);
+                    // Under 3 = Sum(0,1,2)
+                    let cum = 0; for(let i=0; i<line; i++) cum += poisson(i, lambda);
+                    probUnder = cum;
+                    // Over 3 = 1 - P(<=3)
+                    probOver = 1 - (cum + probExact);
+                    
+                    exactContainer.classList.remove('hidden');
+                    exactContainer.classList.add('flex');
+                    document.getElementById('pExactPct').textContent = (probExact * 100).toFixed(1) + "%";
+                    document.getElementById('pExactOdds').textContent = probExact > 0 ? (1/probExact).toFixed(2) : '-';
+
+                } else {
+                    // Decimal Logic (2.5) -> Floor is 2
+                    // Under 2.5 = P(<=2)
+                    const floor = Math.floor(line);
+                    let cum = 0; for(let i=0; i<=floor; i++) cum += poisson(i, lambda);
+                    probUnder = cum;
+                    probOver = 1 - cum;
+                    
+                    exactContainer.classList.add('hidden');
+                    exactContainer.classList.remove('flex');
+                }
+
+                document.getElementById('pOverPct').textContent = (probOver * 100).toFixed(1) + "%";
+                document.getElementById('pOverOdds').textContent = probOver > 0 ? (1/probOver).toFixed(2) : '-';
+                
+                document.getElementById('pUnderPct').textContent = (probUnder * 100).toFixed(1) + "%";
+                document.getElementById('pUnderOdds').textContent = probUnder > 0 ? (1/probUnder).toFixed(2) : '-';
+
+            } else {
+                resContainer.classList.add('hidden');
             }
         }
 
