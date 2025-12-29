@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BetSuite - Pro Analytics</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Inter"', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        dark: {
+                            950: '#02040a',
+                            900: '#090e1a', 
+                            800: '#131b2c',
+                        },
+                        accent: {
+                            500: '#6366f1', // Indigo
+                            600: '#4f46e5',
+                        },
+                    },
+                    boxShadow: {
+                        'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+                        'glow': '0 0 15px rgba(99, 102, 241, 0.3)',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { 
+            background-color: #02040a; 
+            background-image: radial-gradient(circle at 50% 0%, #1a2035 0%, #02040a 60%);
+            color: #e2e8f0; 
+            font-family: 'Inter', sans-serif;
+            height: 100vh; 
+        }
+        
+        .glass-card {
+            background: rgba(19, 27, 44, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.5);
+        }
+
+        .modern-input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+        .modern-input:focus {
+            outline: none;
+            border-color: #6366f1;
+            background: rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        .nav-item {
+            border-radius: 12px;
+            transition: all 0.2s;
+            opacity: 0.7;
+        }
+        .nav-item:hover { opacity: 1; background: rgba(255,255,255,0.05); }
+        .nav-item.active { 
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); 
+            opacity: 1; 
+            color: white; 
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+            transform: scale(1.02);
+        }
+        
+        .btn-secondary {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    </style>
+</head>
+<body class="flex overflow-hidden h-screen">
+
+    <!-- SIDEBAR -->
+    <aside id="main-sidebar" class="w-72 flex-col hidden md:flex border-r border-white/5 bg-[#090e1a]/80 backdrop-blur-md overflow-y-auto z-40 transition-all duration-300">
+        <div class="p-8 pb-4">
+            <div class="flex items-center gap-3 mb-8">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-glow">
+                    <i class="fa-solid fa-cube text-white text-sm"></i>
+                </div>
+                <span class="text-xl font-bold tracking-tight text-white">BetSuite</span>
+            </div>
+            
+            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-3">Menu</div>
+            <nav class="space-y-2">
+                <button onclick="switchView('dashboard')" class="nav-item active w-full flex items-center p-3 text-sm font-medium">
+                    <i class="fa-solid fa-grid-2 mr-3 w-5 text-center"></i> Dashboard
+                </button>
+                <button onclick="switchView('props')" class="nav-item w-full flex items-center p-3 text-sm font-medium">
+                    <i class="fa-solid fa-basketball mr-3 w-5 text-center"></i> Player Props
+                </button>
+                <button onclick="switchView('arb')" class="nav-item w-full flex items-center p-3 text-sm font-medium">
+                    <i class="fa-solid fa-scale-balanced mr-3 w-5 text-center"></i> Arbitrage
+                </button>
+                <button onclick="switchView('ev')" class="nav-item w-full flex items-center p-3 text-sm font-medium">
+                    <i class="fa-solid fa-chart-line mr-3 w-5 text-center"></i> EV Calculator
+                </button>
+                 <button onclick="switchView('poisson')" class="nav-item w-full flex items-center p-3 text-sm font-medium">
+                    <i class="fa-solid fa-square-root-variable mr-3 w-5 text-center"></i> Poisson Dist.
+                </button>
+                <button onclick="switchView('kelly')" class="nav-item w-full flex items-center p-3 text-sm font-medium">
+                    <i class="fa-solid fa-coins mr-3 w-5 text-center"></i> Kelly Criterion
+                </button>
+            </nav>
+        </div>
+        
+        <div class="mt-auto p-6 border-t border-white/5">
+            <div class="glass-card p-4 rounded-xl text-center">
+                <div class="text-xs text-indigo-300 font-semibold mb-1">Pro Plan Active</div>
+                <div class="text-[10px] text-slate-500">v2.1.2 Stable</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 overflow-y-auto relative bg-[#02040a]" id="main-content">
+        
+        <!-- Top Navigation (Mobile) -->
+        <div class="sticky top-0 z-30 p-4 flex justify-between items-center backdrop-blur-sm bg-[#02040a]/80 border-b border-white/5 md:hidden">
+            <span class="font-bold text-lg">BetSuite</span>
+            <button onclick="toggleMobileSidebar()" class="text-slate-300 p-2">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </div>
+
+        <div class="p-4 md:p-8 max-w-7xl mx-auto min-h-screen">
+            
+            <!-- VIEW: DASHBOARD -->
+            <div id="view-dashboard" class="view-section transition-opacity duration-300">
+                <header class="mb-10">
+                    <h1 class="text-3xl font-bold text-white mb-2">Analytics Hub</h1>
+                    <p class="text-slate-400">Select a tool to begin your analysis.</p>
+                </header>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Tool 1: Player Props -->
+                    <div class="glass-card p-6 cursor-pointer group" onclick="switchView('props')">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-basketball text-white text-xl"></i>
+                            </div>
+                            <i class="fa-solid fa-arrow-right text-slate-600 group-hover:text-white transition-colors"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-2">Player Props</h3>
+                        <p class="text-sm text-slate-400 leading-relaxed">Advanced Poisson & Normal modeling for individual player performance stats.</p>
+                    </div>
+
+                    <!-- Tool 2: Arbitrage -->
+                    <div class="glass-card p-6 cursor-pointer group" onclick="switchView('arb')">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-scale-balanced text-white text-xl"></i>
+                            </div>
+                            <i class="fa-solid fa-arrow-right text-slate-600 group-hover:text-white transition-colors"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-2">Arbitrage Finder</h3>
+                        <p class="text-sm text-slate-400 leading-relaxed">Multi-way arbitrage calculator for guaranteed profit margins.</p>
+                    </div>
+
+                    <!-- Tool 3: EV -->
+                    <div class="glass-card p-6 cursor-pointer group" onclick="switchView('ev')">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-chart-line text-white text-xl"></i>
+                            </div>
+                            <i class="fa-solid fa-arrow-right text-slate-600 group-hover:text-white transition-colors"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-2">+EV Calculator</h3>
+                        <p class="text-sm text-slate-400 leading-relaxed">Find value bets by comparing your true win probability against bookmaker odds.</p>
+                    </div>
+
+                    <!-- Tool 4: Poisson -->
+                    <div class="glass-card p-6 cursor-pointer group" onclick="switchView('poisson')">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-square-root-variable text-white text-xl"></i>
+                            </div>
+                            <i class="fa-solid fa-arrow-right text-slate-600 group-hover:text-white transition-colors"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-2">Poisson Distribution</h3>
+                        <p class="text-sm text-slate-400 leading-relaxed">Generate exact score probability tables. Perfect for Soccer and Hockey.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: PLAYER PROPS -->
+            <div id="view-props" class="view-section hidden">
+                <div class="flex items-center mb-8 pb-4 border-b border-white/5">
+                    <button onclick="switchView('dashboard')" class="btn-secondary px-4 py-2 text-sm flex items-center gap-2 mr-4 hover:text-white text-slate-300">
+                        <i class="fa-solid fa-arrow-left"></i> Home
+                    </button>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Player Props Model</h2>
+                        <div class="text-xs text-slate-400">Statistical Distribution Analysis</div>
+                    </div>
+                    <div class="ml-auto flex items-center gap-3">
+                        <div class="flex items-center bg-black/20 p-1.5 px-3 rounded-xl border border-white/5">
+                            <span class="text-xs font-medium text-slate-300 mr-2">Combo Mode</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="comboToggle" class="sr-only peer" onchange="toggleComboMode()">
+                                <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500"></div>
+                            </label>
+                        </div>
+                        <button onclick="loadDemoData()" class="text-xs text-indigo-400 hover:text-indigo-300 font-medium">
+                            Load Demo
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                     <!-- LEFT COL (Inputs) -->
+                     <div class="lg:col-span-4 space-y-6">
+                        <!-- Stat 1 Input -->
+                        <div class="glass-card p-6 border-l-4 border-l-blue-500">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-sm font-bold text-white">Primary Stat</h3>
+                                <i class="fa-solid fa-chart-simple text-blue-500"></i>
+                            </div>
+                            <input type="text" id="stat1Label" value="Points" class="modern-input w-full p-2.5 text-xs mb-3 font-bold uppercase tracking-wide">
+                            <label class="text-[10px] text-slate-400 uppercase mb-1 block">Historical Data</label>
+                            <textarea id="dataInput" rows="3" placeholder="e.g., 2, 4, 1, 5, 3" class="modern-input w-full p-3 text-sm font-mono mb-4"></textarea>
+                            
+                            <div class="grid grid-cols-2 gap-3 mb-4">
+                                <div class="bg-black/20 p-2 rounded-lg text-center border border-white/5">
+                                    <div class="text-[10px] text-slate-500 uppercase">Mean</div>
+                                    <div id="statMean" class="font-bold text-white">-</div>
+                                </div>
+                                <div class="bg-black/20 p-2 rounded-lg text-center border border-white/5">
+                                    <div class="text-[10px] text-slate-500 uppercase">StDev</div>
+                                    <div id="statStdev" class="font-bold text-white">-</div>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-400 uppercase block mb-1">Target Line</label>
+                                <input type="number" id="lineInput" step="0.5" value="3.5" class="modern-input w-full p-2.5">
+                            </div>
+                        </div>
+
+                        <!-- Stat 2 Input -->
+                        <div id="stat2Container" class="hidden glass-card p-6 border-l-4 border-l-orange-500">
+                             <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-sm font-bold text-white">Secondary Stat</h3>
+                                <i class="fa-solid fa-chart-pie text-orange-500"></i>
+                            </div>
+                            <input type="text" id="stat2Label" value="Rebounds" class="modern-input w-full p-2.5 text-xs mb-3 font-bold uppercase tracking-wide">
+                            <textarea id="dataInput2" rows="3" placeholder="e.g., 5, 8, 4" class="modern-input w-full p-3 text-sm font-mono mb-4"></textarea>
+                             <div class="grid grid-cols-2 gap-3 mb-4">
+                                <div class="bg-black/20 p-2 rounded-lg text-center border border-white/5">
+                                    <div class="text-[10px] text-slate-500 uppercase">Mean</div>
+                                    <div id="statMean2" class="font-bold text-white">-</div>
+                                </div>
+                                <div class="bg-black/20 p-2 rounded-lg text-center border border-white/5">
+                                    <div class="text-[10px] text-slate-500 uppercase">StDev</div>
+                                    <div id="statStdev2" class="font-bold text-white">-</div>
+                                </div>
+                            </div>
+                             <div>
+                                <label class="text-[10px] text-slate-400 uppercase block mb-1">Target Line</label>
+                                <input type="number" id="lineInput2" step="0.5" value="5.5" class="modern-input w-full p-2.5">
+                            </div>
+                        </div>
+
+                        <!-- Calc Button -->
+                         <div class="glass-card p-4">
+                            <div class="flex justify-between items-center mb-3">
+                                <label class="text-xs font-bold text-slate-400">Bookie Margin</label>
+                                <div class="relative w-24">
+                                    <input type="number" id="marginInput" step="0.5" value="5.0" class="modern-input w-full p-1.5 text-right pr-6 text-sm">
+                                    <span class="absolute right-2 top-1.5 text-slate-500 text-sm">%</span>
+                                </div>
+                            </div>
+                            <button onclick="processData()" class="btn-primary w-full py-3 shadow-glow text-white">
+                                Calculate Probabilities
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Right Col -->
+                    <div class="lg:col-span-8 space-y-6">
+                        <!-- COMBO SECTION -->
+                        <div id="comboSection" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="glass-card p-5 relative overflow-hidden">
+                                <div class="absolute top-0 right-0 p-4 opacity-5">
+                                    <i class="fa-solid fa-link text-6xl"></i>
+                                </div>
+                                <div class="flex justify-between items-center mb-4">
+                                    <span class="text-xs font-bold uppercase text-orange-400 tracking-wider">Same Game Parlay</span>
+                                    <span id="corrValue" class="text-[10px] font-bold bg-white/10 px-2 py-0.5 rounded text-white">-</span>
+                                </div>
+                                <div class="flex justify-between items-end gap-4">
+                                    <div class="bg-black/30 p-3 rounded-xl flex-1 border border-white/5">
+                                        <div class="text-2xl font-bold text-emerald-400" id="comboHistProb">-</div>
+                                        <div class="text-[10px] text-slate-500 uppercase">Historical</div>
+                                    </div>
+                                    <div class="bg-black/30 p-3 rounded-xl flex-1 border border-white/5 text-right">
+                                        <div class="text-lg text-blue-400" id="comboIndProb">-</div>
+                                        <div class="text-[10px] text-slate-500 uppercase">Theoretical</div>
+                                    </div>
+                                </div>
+                            </div>
+                             <div class="glass-card p-5">
+                                <div class="flex justify-between items-center mb-4">
+                                    <span class="text-xs font-bold uppercase text-purple-400 tracking-wider">Combined Total</span>
+                                    <input type="number" id="sumLineInput" value="10.5" class="modern-input w-16 text-xs p-1 text-center font-bold">
+                                </div>
+                                <div class="flex justify-between items-end gap-4">
+                                    <div class="bg-black/30 p-3 rounded-xl flex-1 border border-white/5">
+                                        <div class="text-2xl font-bold text-purple-400" id="sumHistProb">-</div>
+                                        <div class="text-[10px] text-slate-500 uppercase">Historical Over</div>
+                                    </div>
+                                    <div class="bg-black/30 p-3 rounded-xl flex-1 border border-white/5 text-right">
+                                        <div class="text-lg text-blue-400" id="sumNormProb">-</div>
+                                        <div class="text-[10px] text-slate-500 uppercase">Normal Dist.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Results -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Poisson 1 -->
+                            <div class="glass-card p-5">
+                                <div class="flex justify-between items-center mb-3">
+                                    <h4 class="text-sm font-bold text-blue-400">Poisson Model</h4>
+                                    <span id="rec-poisson-1" class="hidden text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 font-bold uppercase tracking-wider">Best Fit</span>
+                                </div>
+                                <div class="flex text-xs justify-between mb-2 text-slate-400 font-medium">
+                                    <span>Under <span class="line-display text-white">3.5</span></span>
+                                    <span>Over <span class="line-display text-white">3.5</span></span>
+                                </div>
+                                <div class="h-2.5 bg-slate-800 rounded-full flex overflow-hidden mb-3 border border-white/5">
+                                    <div id="poissonUnderBar" class="bg-gradient-to-r from-red-600 to-red-500 w-1/2 transition-all duration-500"></div>
+                                    <div id="poissonOverBar" class="bg-gradient-to-r from-emerald-500 to-emerald-400 w-1/2 transition-all duration-500"></div>
+                                </div>
+                                <div class="flex justify-between font-mono text-sm bg-black/20 p-2 rounded-lg">
+                                    <span id="poissonUnderOdds" class="text-red-400 font-bold">-</span>
+                                    <span id="poissonOverOdds" class="text-emerald-400 font-bold">-</span>
+                                </div>
+                            </div>
+                            <!-- Normal 1 -->
+                            <div class="glass-card p-5">
+                                <div class="flex justify-between items-center mb-3">
+                                    <h4 class="text-sm font-bold text-purple-400">Normal Model</h4>
+                                    <span id="rec-normal-1" class="hidden text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 font-bold uppercase tracking-wider">Best Fit</span>
+                                </div>
+                                <div class="flex text-xs justify-between mb-2 text-slate-400 font-medium">
+                                    <span>Under <span class="line-display text-white">3.5</span></span>
+                                    <span>Over <span class="line-display text-white">3.5</span></span>
+                                </div>
+                                <div class="h-2.5 bg-slate-800 rounded-full flex overflow-hidden mb-3 border border-white/5">
+                                    <div id="normalUnderBar" class="bg-gradient-to-r from-red-600 to-red-500 w-1/2 transition-all duration-500"></div>
+                                    <div id="normalOverBar" class="bg-gradient-to-r from-emerald-500 to-emerald-400 w-1/2 transition-all duration-500"></div>
+                                </div>
+                                <div class="flex justify-between font-mono text-sm bg-black/20 p-2 rounded-lg">
+                                    <span id="normalUnderOdds" class="text-red-400 font-bold">-</span>
+                                    <span id="normalOverOdds" class="text-emerald-400 font-bold">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass-card p-5 h-64">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Trend Analysis</h4>
+                            <div class="h-full pb-6">
+                                <canvas id="trendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: EV CALCULATOR -->
+            <div id="view-ev" class="view-section hidden">
+                <div class="flex items-center mb-8 pb-4 border-b border-white/5">
+                    <button onclick="switchView('dashboard')" class="btn-secondary px-4 py-2 text-sm flex items-center gap-2 mr-4 hover:text-white text-slate-300">
+                        <i class="fa-solid fa-arrow-left"></i> Home
+                    </button>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">+EV Calculator</h2>
+                        <div class="text-xs text-slate-400">Expected Value Analysis</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    <div class="glass-card p-8">
+                        <div class="space-y-6">
+                            <div>
+                                <label class="text-xs text-slate-400 uppercase font-bold mb-2 block">Wager Amount ($)</label>
+                                <input type="number" id="evWager" value="100" class="modern-input w-full p-4 text-lg">
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 uppercase font-bold mb-2 block">Odds (Decimal)</label>
+                                <input type="number" id="evOdds" placeholder="2.10" class="modern-input w-full p-4 text-lg">
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 uppercase font-bold mb-2 block">True Win Probability (%)</label>
+                                <input type="number" id="evProb" placeholder="50.0" class="modern-input w-full p-4 text-lg">
+                            </div>
+                            <button onclick="calculateEV()" class="btn-primary w-full py-4 text-lg shadow-glow text-white mt-2">Calculate EV</button>
+                        </div>
+                    </div>
+                    <div class="glass-card p-8 flex flex-col justify-center items-center text-center space-y-6">
+                        <div class="text-xs text-slate-400 uppercase tracking-[0.2em]">Expected Value</div>
+                        <div class="text-5xl font-bold text-white tracking-tight" id="evResult">0.00%</div>
+                        <div class="text-xl text-slate-400 font-mono" id="evDollar">$0.00</div>
+                        <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div id="evBar" class="h-full bg-slate-500 w-0 transition-all duration-700"></div>
+                        </div>
+                        
+                        <!-- Added Break-Even Metrics -->
+                        <div class="grid grid-cols-2 gap-4 w-full pt-4 border-t border-white/5">
+                            <div>
+                                <div class="text-[10px] text-slate-500 uppercase">Break-Even Win %</div>
+                                <div class="text-sm font-bold text-white" id="evBreakEven">-</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] text-slate-500 uppercase">Edge</div>
+                                <div class="text-sm font-bold text-white" id="evEdge">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: POISSON DISTRIBUTON -->
+            <div id="view-poisson" class="view-section hidden">
+                 <div class="flex items-center mb-8 pb-4 border-b border-white/5">
+                    <button onclick="switchView('dashboard')" class="btn-secondary px-4 py-2 text-sm flex items-center gap-2 mr-4 hover:text-white text-slate-300">
+                        <i class="fa-solid fa-arrow-left"></i> Home
+                    </button>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Poisson Distribution</h2>
+                        <div class="text-xs text-slate-400">Exact Score Probability Table</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="glass-card p-8 md:col-span-1">
+                        <div class="space-y-6">
+                             <div>
+                                <label class="text-xs text-slate-400 uppercase font-bold mb-2 block">Expected Average (λ)</label>
+                                <input type="number" id="poissonLambda" placeholder="1.5" step="0.1" class="modern-input w-full p-4 text-lg">
+                                <p class="text-[10px] text-slate-500 mt-2">E.g., Avg goals for a soccer team.</p>
+                            </div>
+                            <button onclick="calculatePoissonTable()" class="btn-primary w-full py-3 shadow-glow text-white">Generate Table</button>
+                        </div>
+                    </div>
+                    <div class="glass-card p-0 md:col-span-2 overflow-hidden">
+                        <table class="w-full text-sm text-left text-slate-300">
+                            <thead class="text-xs text-slate-400 uppercase bg-black/20">
+                                <tr>
+                                    <th class="px-6 py-4">Count (k)</th>
+                                    <th class="px-6 py-4">Probability</th>
+                                    <th class="px-6 py-4">Over k</th>
+                                    <th class="px-6 py-4">Under k</th>
+                                    <th class="px-6 py-4">Odds</th>
+                                </tr>
+                            </thead>
+                            <tbody id="poissonTableBody" class="divide-y divide-white/5">
+                                <tr><td colspan="5" class="px-6 py-8 text-center text-slate-500">Enter an average to generate probabilities.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: ARBITRAGE -->
+            <div id="view-arb" class="view-section hidden">
+                <div class="flex items-center mb-8 pb-4 border-b border-white/5">
+                    <button onclick="switchView('dashboard')" class="btn-secondary px-4 py-2 text-sm flex items-center gap-2 mr-4 hover:text-white text-slate-300">
+                        <i class="fa-solid fa-arrow-left"></i> Home
+                    </button>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Arbitrage Finder</h2>
+                        <div class="text-xs text-slate-400">Multi-Outcome Calculator</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                    <!-- Inputs Left -->
+                    <div class="glass-card p-8 md:col-span-2">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-bold text-white"><i class="fa-solid fa-list-ol text-emerald-400 mr-2"></i> Outcomes</h3>
+                            <button onclick="addArbRow()" class="text-xs bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors">
+                                <i class="fa-solid fa-plus mr-1"></i> Add Outcome
+                            </button>
+                        </div>
+                        
+                        <div id="arbOutcomes" class="space-y-4 mb-6">
+                            <!-- Rows injected via JS -->
+                        </div>
+
+                        <div class="pt-6 border-t border-white/5">
+                             <label class="text-xs text-slate-400 uppercase font-bold mb-2 block">Total Stake ($)</label>
+                             <input type="number" id="arbStake" value="100" class="modern-input w-full p-4 text-lg">
+                             <button onclick="calculateArb()" class="btn-primary w-full py-4 text-lg shadow-glow text-white mt-4">Calculate</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Results Right -->
+                    <div class="glass-card p-8 flex flex-col items-center text-center space-y-6">
+                        <div class="text-xs text-slate-400 uppercase tracking-[0.2em]">Net Profit</div>
+                        <div class="text-5xl font-bold text-white tracking-tight" id="arbProfitVal">0.00%</div>
+                        <div class="text-xs text-slate-500" id="arbJuice">Market Juice: 0.00%</div>
+                        <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div id="arbBar" class="h-full bg-slate-500 w-0 transition-all duration-700"></div>
+                        </div>
+                         <div id="arbStakesContainer" class="w-full space-y-3 hidden">
+                             <!-- Results injected JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: KELLY -->
+            <div id="view-kelly" class="view-section hidden">
+                <div class="flex items-center mb-8 pb-4 border-b border-white/5">
+                    <button onclick="switchView('dashboard')" class="btn-secondary px-4 py-2 text-sm flex items-center gap-2 mr-4 hover:text-white text-slate-300">
+                        <i class="fa-solid fa-arrow-left"></i> Home
+                    </button>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Kelly Criterion</h2>
+                        <div class="text-xs text-slate-400">Bankroll Management</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                    <div class="glass-card p-8 md:col-span-1">
+                        <div class="space-y-5">
+                            <div>
+                                <label class="text-xs text-slate-400 uppercase font-bold mb-2 block">Bankroll ($)</label>
+                                <input type="number" id="kellyBank" value="1000" class="modern-input w-full p-3">
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 uppercase font-bold mb-2 block">Odds (Decimal)</label>
+                                <input type="number" id="kellyOdds" placeholder="2.00" class="modern-input w-full p-3">
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 uppercase font-bold mb-2 block">Win Prob (%)</label>
+                                <input type="number" id="kellyProb" placeholder="55" class="modern-input w-full p-3">
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 uppercase font-bold mb-2 block">Strategy</label>
+                                <select id="kellyFraction" class="modern-input w-full p-3 bg-black">
+                                    <option value="1">Full Kelly (Aggressive)</option>
+                                    <option value="0.5" selected>Half Kelly (Standard)</option>
+                                    <option value="0.25">Quarter Kelly (Safe)</option>
+                                </select>
+                            </div>
+                            <button onclick="calculateKelly()" class="btn-primary w-full py-3 shadow-glow text-white mt-2">
+                                Calculate
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-card p-8 md:col-span-2 flex flex-col justify-center items-center text-center relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent pointer-events-none"></div>
+                        <div class="text-xs text-indigo-300 uppercase tracking-[0.2em] mb-4">Recommended Bet Size</div>
+                        <div class="text-6xl font-bold text-white mb-2 tracking-tight" id="kellyStake">$0.00</div>
+                        <div class="text-xl text-slate-400 mb-8 font-mono" id="kellyPercent">0.00% of Bankroll</div>
+                        
+                        <!-- Added Growth Metric -->
+                        <div class="p-4 bg-white/5 border border-white/5 rounded-xl w-full max-w-md text-sm text-slate-300 flex justify-between items-center">
+                            <span>Expected Growth (per bet):</span>
+                            <span class="font-bold text-emerald-400" id="kellyGrowth">0.00%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- NAVIGATION LOGIC ---
+        function switchView(viewId) {
+            const sidebar = document.getElementById('main-sidebar');
+            // FIX: Ensure hidden is applied and flex classes removed when not in dashboard
+            if (viewId === 'dashboard') {
+                sidebar.classList.add('hidden'); 
+                sidebar.classList.add('md:flex'); 
+                sidebar.classList.remove('flex'); 
+            } else {
+                sidebar.classList.add('hidden');
+                sidebar.classList.remove('md:flex'); 
+                sidebar.classList.remove('flex');
+            }
+
+            document.querySelectorAll('.view-section').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('opacity-100');
+                el.classList.add('opacity-0');
+            });
+            
+            const activeView = document.getElementById(`view-${viewId}`);
+            activeView.classList.remove('hidden');
+            
+            setTimeout(() => {
+                activeView.classList.remove('opacity-0');
+                activeView.classList.add('opacity-100');
+            }, 10);
+
+            // Special init for Arb to ensure rows exist
+            if(viewId === 'arb' && document.getElementById('arbOutcomes').children.length === 0) {
+                addArbRow(); addArbRow(); // Start with 2
+            }
+        }
+        
+        function toggleMobileSidebar() {
+             const sb = document.getElementById('main-sidebar');
+             if(sb.classList.contains('hidden')) {
+                 sb.classList.remove('hidden');
+                 sb.classList.add('absolute', 'z-50', 'h-full', 'w-72', 'flex');
+             } else {
+                 sb.classList.add('hidden');
+                 sb.classList.remove('absolute', 'z-50', 'h-full', 'w-72', 'flex');
+             }
+        }
+
+        // --- EV CALCULATOR ---
+        function calculateEV() {
+            const wager = parseFloat(document.getElementById('evWager').value);
+            const odds = parseFloat(document.getElementById('evOdds').value);
+            const prob = parseFloat(document.getElementById('evProb').value) / 100;
+
+            if(!wager || !odds || !prob) return;
+
+            // EV Calculation
+            const profit = wager * (odds - 1);
+            const ev = (profit * prob) - (wager * (1 - prob));
+            const evPercent = (ev / wager) * 100;
+
+            // Break Even Logic: 1 / Odds
+            const breakEvenProb = (1 / odds) * 100;
+            const edge = (prob * 100) - breakEvenProb;
+
+            const evRes = document.getElementById('evResult');
+            const evDol = document.getElementById('evDollar');
+            const bar = document.getElementById('evBar');
+
+            evRes.textContent = (evPercent > 0 ? "+" : "") + evPercent.toFixed(2) + "%";
+            evDol.textContent = (ev > 0 ? "+$" : "-$") + Math.abs(ev).toFixed(2);
+            document.getElementById('evBreakEven').textContent = breakEvenProb.toFixed(2) + "%";
+            document.getElementById('evEdge').textContent = (edge > 0 ? "+" : "") + edge.toFixed(2) + "%";
+            
+            if(ev > 0) {
+                evRes.className = "text-5xl font-bold text-emerald-400 tracking-tight";
+                bar.className = "h-full bg-emerald-500 shadow-glow";
+                bar.style.width = "100%";
+            } else {
+                evRes.className = "text-5xl font-bold text-red-400 tracking-tight";
+                bar.className = "h-full bg-red-500";
+                bar.style.width = "100%";
+            }
+        }
+
+        // --- POISSON TABLE CALCULATOR ---
+        function calculatePoissonTable() {
+            const lambda = parseFloat(document.getElementById('poissonLambda').value);
+            const tbody = document.getElementById('poissonTableBody');
+            tbody.innerHTML = "";
+            
+            if(!lambda) return;
+
+            function poisson(k, l) { return (Math.exp(-l)*Math.pow(l,k))/factorial(k); }
+            function factorial(n) { if(n<2) return 1; return n * factorial(n-1); }
+
+            let cumulative = 0;
+            for(let k=0; k<15; k++) {
+                const p = poisson(k, lambda);
+                cumulative += p;
+                
+                // Stop if probability is negligible
+                if(p < 0.0001 && cumulative > 0.999) break;
+
+                const percent = (p * 100).toFixed(1) + "%";
+                const odds = p > 0 ? (1/p).toFixed(2) : '-';
+                
+                // Cumulative logic
+                const probUnder = cumulative; 
+                const probOver = 1 - cumulative + p; // Probability of being >= k. Wait, strict over is > k? Usually betting is Over 2.5.
+                // Let's do: "Over k" means > k (e.g. Over 0 means 1,2,3...) = 1 - P(<=k)
+                // "Under k" means < k? No, usually betting lines are integers.
+                // Let's list P(> k) and P(< k). 
+                // Actually, standard table: P(X=k), P(X<=k), P(X>=k)
+                const probLEQ = (cumulative * 100).toFixed(1) + "%"; // <= k
+                const probGEQ = ((1 - cumulative + p) * 100).toFixed(1) + "%"; // >= k
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-bold text-white">${k}</td>
+                    <td class="px-6 py-4 text-emerald-400">${percent}</td>
+                    <td class="px-6 py-4 text-slate-400">${probGEQ} (≥${k})</td>
+                    <td class="px-6 py-4 text-slate-400">${probLEQ} (≤${k})</td>
+                    <td class="px-6 py-4 font-mono">${odds}</td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        // --- ARBITRAGE CALCULATOR (DYNAMIC) ---
+        function addArbRow() {
+            const container = document.getElementById('arbOutcomes');
+            const count = container.children.length + 1;
+            const div = document.createElement('div');
+            div.className = "flex gap-4 items-end animate-fade-in";
+            div.innerHTML = `
+                <div class="flex-1">
+                    <label class="text-[10px] text-slate-500 uppercase mb-1 block">Outcome ${count} Odds</label>
+                    <input type="number" class="modern-input w-full p-3 arb-odds-input" placeholder="2.00">
+                </div>
+                <button onclick="this.parentElement.remove()" class="p-3 text-red-400 hover:text-red-300 mb-[1px]">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            `;
+            container.appendChild(div);
+        }
+
+        function calculateArb() {
+            const inputs = document.querySelectorAll('.arb-odds-input');
+            const totalStake = parseFloat(document.getElementById('arbStake').value);
+            let totalImpliedProb = 0;
+            let valid = true;
+
+            const outcomes = [];
+
+            inputs.forEach(input => {
+                const odds = parseFloat(input.value);
+                if(!odds) valid = false;
+                else {
+                    const ip = 1/odds;
+                    totalImpliedProb += ip;
+                    outcomes.push({ odds, ip });
+                }
+            });
+
+            if(!valid || outcomes.length < 2) return;
+
+            const profitMargin = 1 - totalImpliedProb;
+            const profitEl = document.getElementById('arbProfitVal');
+            const juiceEl = document.getElementById('arbJuice');
+            const barEl = document.getElementById('arbBar');
+            const resultsContainer = document.getElementById('arbStakesContainer');
+            
+            profitEl.textContent = (profitMargin * 100).toFixed(2) + "%";
+            juiceEl.textContent = `Market Margin: ${((totalImpliedProb - 1) * 100).toFixed(2)}%`;
+            
+            resultsContainer.innerHTML = "";
+            resultsContainer.classList.remove('hidden');
+
+            if(profitMargin > 0) {
+                profitEl.className = "text-5xl font-bold text-emerald-400 tracking-tight";
+                barEl.className = "h-full bg-emerald-500 shadow-glow";
+                barEl.style.width = "100%";
+
+                outcomes.forEach((o, idx) => {
+                    const stake = (totalStake * o.ip) / totalImpliedProb;
+                    const div = document.createElement('div');
+                    div.className = "bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl flex justify-between items-center";
+                    div.innerHTML = `
+                        <div class="text-xs text-emerald-300 uppercase">Bet on Outcome ${idx+1} (@${o.odds})</div>
+                        <span class="font-mono text-white font-bold">$${stake.toFixed(2)}</span>
+                    `;
+                    resultsContainer.appendChild(div);
+                });
+
+            } else {
+                profitEl.className = "text-5xl font-bold text-red-400 tracking-tight";
+                barEl.className = "h-full bg-red-500";
+                barEl.style.width = "100%";
+                resultsContainer.innerHTML = `<div class="text-slate-500 text-sm text-center">No Arbitrage. Total Implied Prob: ${(totalImpliedProb*100).toFixed(2)}%</div>`;
+            }
+        }
+
+        // --- KELLY CALCULATOR ---
+        function calculateKelly() {
+            const bank = parseFloat(document.getElementById('kellyBank').value);
+            const odds = parseFloat(document.getElementById('kellyOdds').value);
+            const prob = parseFloat(document.getElementById('kellyProb').value) / 100;
+            const fraction = parseFloat(document.getElementById('kellyFraction').value);
+
+            if (!bank || !odds || !prob) return;
+
+            const b = odds - 1;
+            const q = 1 - prob;
+            let f = (b * prob - q) / b;
+            f = f * fraction;
+
+            const stakeEl = document.getElementById('kellyStake');
+            const pctEl = document.getElementById('kellyPercent');
+            const growthEl = document.getElementById('kellyGrowth');
+
+            if (f <= 0) {
+                stakeEl.textContent = "$0.00";
+                pctEl.textContent = "No Edge / Negative EV";
+                stakeEl.className = "text-5xl font-bold text-slate-500 tracking-tight";
+                growthEl.textContent = "0.00%";
+            } else {
+                const stakeAmt = bank * f;
+                
+                // Calculate Expected Growth Rate (g)
+                // g = p * log(1 + b*f) + q * log(1 - f)
+                const growthRate = (prob * Math.log(1 + b * f)) + (q * Math.log(1 - f));
+                const growthPercent = (Math.exp(growthRate) - 1) * 100;
+
+                stakeEl.textContent = `$${stakeAmt.toFixed(2)}`;
+                pctEl.textContent = `${(f*100).toFixed(2)}% of Bankroll`;
+                stakeEl.className = "text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 tracking-tight";
+                growthEl.textContent = "+" + growthPercent.toFixed(3) + "%";
+            }
+        }
+
+        // --- PLAYER PROPS LOGIC ---
+        let globalData = [], globalData2 = [], mean = 0, stdev = 0, mean2 = 0, stdev2 = 0;
+        let trendChart = null;
+
+        function toggleComboMode() {
+            const isOn = document.getElementById('comboToggle').checked;
+            const s2 = document.getElementById('stat2Container');
+            const cs = document.getElementById('comboSection');
+            if(isOn) { s2.classList.remove('hidden'); cs.classList.remove('hidden'); cs.classList.add('grid'); }
+            else { s2.classList.add('hidden'); cs.classList.add('hidden'); cs.classList.remove('grid'); }
+            processData(); 
+        }
+
+        function getMean(d) { return d.length ? d.reduce((a,b)=>a+b,0)/d.length : 0; }
+        function getStDev(d, m) { return d.length < 2 ? 0 : Math.sqrt(d.reduce((a,b)=>a+Math.pow(b-m,2),0)/(d.length-1)); }
+        function factorial(n) { if(n<2) return 1; return n * factorial(n-1); }
+        function poisson(k, l) { return (Math.exp(-l)*Math.pow(l,k))/factorial(k); }
+        function normalCDF(x, m, s) { if(s===0) return x>=m?1:0; let z=(x-m)/Math.sqrt(2*s*s); let t=1/(1+0.3275911*Math.abs(z)); let erf=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-z*z); return 0.5*(1+(z<0?-1:1)*erf); }
+
+        function processData() {
+            const l1 = document.getElementById('stat1Label').value;
+            const l2 = document.getElementById('stat2Label').value;
+            const r1 = document.getElementById('dataInput').value;
+            globalData = r1.split(',').map(n => parseFloat(n)).filter(n => !isNaN(n));
+            if(globalData.length < 2) return;
+            mean = getMean(globalData); stdev = getStDev(globalData, mean);
+            document.getElementById('statMean').innerText = mean.toFixed(2);
+            document.getElementById('statStdev').innerText = stdev.toFixed(2);
+
+            checkRec(globalData, mean, 1);
+
+            const comboOn = document.getElementById('comboToggle').checked;
+            if(comboOn) {
+                const r2 = document.getElementById('dataInput2').value;
+                globalData2 = r2.split(',').map(n => parseFloat(n)).filter(n => !isNaN(n));
+                if(globalData2.length > 0) {
+                    mean2 = getMean(globalData2); stdev2 = getStDev(globalData2, mean2);
+                    document.getElementById('statMean2').innerText = mean2.toFixed(2);
+                    document.getElementById('statStdev2').innerText = stdev2.toFixed(2);
+                }
+            }
+
+            const line = parseFloat(document.getElementById('lineInput').value);
+            const margin = parseFloat(document.getElementById('marginInput').value)/100;
+            document.querySelectorAll('.line-display').forEach(e => e.innerText = line);
+
+            let pUnd = 0; for(let i=0; i<=Math.floor(line); i++) pUnd += poisson(i, mean);
+            let pOv = 1 - pUnd;
+            updOdds('poisson', pUnd, pOv, margin);
+
+            let nUnd = normalCDF(line, mean, stdev);
+            let nOv = 1 - nUnd;
+            updOdds('normal', nUnd, nOv, margin);
+
+            updChart(globalData, l1);
+
+            if(comboOn && globalData2.length > 0) {
+                const line2 = parseFloat(document.getElementById('lineInput2').value);
+                const sumLine = parseFloat(document.getElementById('sumLineInput').value);
+                document.getElementById('corrValue').innerText = "0.45"; // Demo Value
+
+                let hits = 0; const len = Math.min(globalData.length, globalData2.length);
+                for(let i=0; i<len; i++) if(globalData[i] > line && globalData2[i] > line2) hits++;
+                const empProb = len ? hits/len : 0;
+                
+                let p2Und = 0; for(let i=0; i<=Math.floor(line2); i++) p2Und += poisson(i, mean2);
+                const indProb = pOv * (1 - p2Und);
+
+                document.getElementById('comboHistProb').innerText = (empProb*100).toFixed(1) + "%";
+                document.getElementById('comboIndProb').innerText = (indProb*100).toFixed(1) + "%";
+
+                let sumHits = 0; let sumDat = [];
+                for(let i=0; i<len; i++) { sumDat.push(globalData[i] + globalData2[i]); if(sumDat[i] > sumLine) sumHits++; }
+                const sumProb = len ? sumHits/len : 0;
+                const sumM = getMean(sumDat); const sumS = getStDev(sumDat, sumM);
+                const normSumProb = 1 - normalCDF(sumLine, sumM, sumS);
+
+                document.getElementById('sumHistProb').innerText = (sumProb*100).toFixed(1) + "%";
+                document.getElementById('sumNormProb').innerText = (normSumProb*100).toFixed(1) + "%";
+            }
+        }
+
+        function checkRec(d, m, id) {
+             const hasDec = d.some(n => n % 1 !== 0);
+             const pBad = document.getElementById(`rec-poisson-${id}`);
+             const nBad = document.getElementById(`rec-normal-${id}`);
+             pBad.classList.add('hidden'); nBad.classList.add('hidden');
+             
+             if(hasDec || m > 20) nBad.classList.remove('hidden');
+             else pBad.classList.remove('hidden');
+        }
+
+        function updOdds(id, u, o, m) {
+            document.getElementById(`${id}UnderBar`).style.width = (u*100) + "%";
+            document.getElementById(`${id}OverBar`).style.width = (o*100) + "%";
+            document.getElementById(`${id}UnderOdds`).innerText = u > 0 ? (1/u/(1+m)).toFixed(2) : '-';
+            document.getElementById(`${id}OverOdds`).innerText = o > 0 ? (1/o/(1+m)).toFixed(2) : '-';
+        }
+
+        function updChart(data, label) {
+            if(trendChart) trendChart.destroy();
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
+            gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
+
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map((_, i) => `G${i+1}`),
+                    datasets: [{ 
+                        label: label, 
+                        data: data, 
+                        borderColor: '#6366f1', 
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#1e1b4b',
+                        pointBorderColor: '#6366f1',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: {display: false} }, 
+                    scales: { 
+                        x: { display: false },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } }
+                    } 
+                }
+            });
+        }
+
+        function loadDemoData() {
+            document.getElementById('dataInput').value = "22, 18, 25, 15, 30, 21, 19, 24, 20, 16";
+            document.getElementById('dataInput2').value = "9, 7, 12, 5, 11, 8, 8, 10, 8, 6";
+            processData();
+        }
+
+        window.onload = function() { };
+    </script>
+</body>
+</html>
