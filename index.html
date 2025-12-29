@@ -437,13 +437,31 @@
                                 <input type="number" id="evWager" value="100" class="modern-input w-full p-4 text-lg">
                             </div>
                             <div>
-                                <label class="text-xs text-slate-400 uppercase font-bold mb-2 block">Odds (Decimal)</label>
+                                <label class="text-xs text-slate-400 uppercase font-bold mb-2 block">Bookmaker Odds (Decimal)</label>
                                 <input type="number" id="evOdds" placeholder="2.10" class="modern-input w-full p-4 text-lg">
                             </div>
+                            
+                            <!-- Toggle for Input Type -->
                             <div>
-                                <label class="text-xs text-slate-400 uppercase font-bold mb-2 block">True Win Probability (%)</label>
-                                <input type="number" id="evProb" placeholder="50.0" class="modern-input w-full p-4 text-lg">
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="text-xs text-slate-400 uppercase font-bold">Your Edge Source</label>
+                                    <div class="flex bg-black/40 rounded-lg p-1 border border-white/10">
+                                        <button onclick="setEvMode('percent')" id="btn-ev-percent" class="px-3 py-1 text-[10px] rounded font-bold bg-indigo-500 text-white transition-all shadow-glow">Win %</button>
+                                        <button onclick="setEvMode('odds')" id="btn-ev-odds" class="px-3 py-1 text-[10px] rounded font-bold text-slate-400 hover:text-white transition-all">Fair Odds</button>
+                                    </div>
+                                </div>
+                                
+                                <div id="evInputPercent">
+                                    <input type="number" id="evProb" placeholder="50.0" class="modern-input w-full p-4 text-lg">
+                                    <p class="text-[10px] text-slate-500 mt-2">Enter your estimated win probability (e.g., 55%).</p>
+                                </div>
+                                
+                                <div id="evInputOdds" class="hidden">
+                                    <input type="number" id="evTrueOdds" placeholder="1.90" class="modern-input w-full p-4 text-lg">
+                                    <p class="text-[10px] text-slate-500 mt-2">Enter the "True Price" or Fair Odds (e.g., 1.90).</p>
+                                </div>
                             </div>
+
                             <button onclick="calculateEV()" class="btn-primary w-full py-4 text-lg shadow-glow text-white mt-2">Calculate EV</button>
                         </div>
                     </div>
@@ -652,7 +670,7 @@
 
         </div>
     </main>
-
+<!-- ... inside <script> tag ... -->
     <script>
         // --- NAVIGATION LOGIC ---
         function switchView(viewId) {
@@ -700,21 +718,64 @@
         }
 
         // --- EV CALCULATOR ---
+        let evMode = 'percent';
+
+        function setEvMode(mode) {
+            evMode = mode;
+            if(mode === 'percent') {
+                document.getElementById('evInputPercent').classList.remove('hidden');
+                document.getElementById('evInputOdds').classList.add('hidden');
+                
+                // Style Active Button
+                const btnP = document.getElementById('btn-ev-percent');
+                btnP.className = "px-3 py-1 text-[10px] rounded font-bold bg-indigo-500 text-white transition-all shadow-glow";
+                
+                // Style Inactive Button
+                const btnO = document.getElementById('btn-ev-odds');
+                btnO.className = "px-3 py-1 text-[10px] rounded font-bold text-slate-400 hover:text-white transition-all";
+            } else {
+                document.getElementById('evInputPercent').classList.add('hidden');
+                document.getElementById('evInputOdds').classList.remove('hidden');
+                
+                // Style Inactive Button
+                const btnP = document.getElementById('btn-ev-percent');
+                btnP.className = "px-3 py-1 text-[10px] rounded font-bold text-slate-400 hover:text-white transition-all";
+                
+                // Style Active Button
+                const btnO = document.getElementById('btn-ev-odds');
+                btnO.className = "px-3 py-1 text-[10px] rounded font-bold bg-indigo-500 text-white transition-all shadow-glow";
+            }
+        }
+
         function calculateEV() {
             const wager = parseFloat(document.getElementById('evWager').value);
-            const odds = parseFloat(document.getElementById('evOdds').value);
-            const prob = parseFloat(document.getElementById('evProb').value) / 100;
+            const odds = parseFloat(document.getElementById('evOdds').value); // Bookie Odds
+            let prob = 0;
+
+            // Determine Probability based on Mode
+            if (evMode === 'percent') {
+                prob = parseFloat(document.getElementById('evProb').value) / 100;
+            } else {
+                const fairOdds = parseFloat(document.getElementById('evTrueOdds').value);
+                if (fairOdds > 0) {
+                    prob = 1 / fairOdds;
+                }
+            }
 
             if(!wager || !odds || !prob) return;
 
             // EV Calculation
+            // Profit if won = Wager * (DecimalOdds - 1)
             const profit = wager * (odds - 1);
+            
+            // EV = (ProbabilityOfWin * Profit) - (ProbabilityOfLoss * Wager)
             const ev = (profit * prob) - (wager * (1 - prob));
             const evPercent = (ev / wager) * 100;
 
             // Break Even Logic: 1 / Odds
             const breakEvenProb = (1 / odds) * 100;
-            const edge = (prob * 100) - breakEvenProb;
+            const trueProbPct = prob * 100;
+            const edge = trueProbPct - breakEvenProb;
 
             const evRes = document.getElementById('evResult');
             const evDol = document.getElementById('evDollar');
